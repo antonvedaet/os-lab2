@@ -5,14 +5,9 @@
 #include <vector>
 #include <cstring>
 #include "lab2_cache.h"
-
 namespace fs = std::filesystem;
 
-const char *LIBRARY_PATH = "./liblab2.so";
-
-void find_file(const std::string &filename, const fs::path &search_path,
-               auto lab2_open,auto lab2_close,
-               auto lab2_read,auto lab2_lseek)
+void find_file(const std::string &filename, const fs::path &search_path)
 {
     bool found = false;
 
@@ -20,7 +15,7 @@ void find_file(const std::string &filename, const fs::path &search_path,
     {
         if (entry.is_regular_file() && entry.path().filename() == filename)
         {
-            int fd = lab2_open(entry.path().c_str());
+            int fd = lab2_open(entry.path().c_str(), 4);
             if (fd < 0)
             {
                 std::cerr << "Ошибка открытия файла: " << entry.path() << std::endl;
@@ -34,8 +29,11 @@ void find_file(const std::string &filename, const fs::path &search_path,
                 std::cout << "Файл найден: " << entry.path() << std::endl;
                 found = true;
             }
+            else
+            {
+                std::cerr << "Ошибка чтения файла: " << entry.path() << std::endl;
+            }
             lab2_close(fd);
-            break;
         }
     }
 
@@ -57,25 +55,10 @@ int main(int argc, char *argv[])
     fs::path search_path = argv[2];
     int repeat = std::stoi(argv[3]);
 
-    void *handle = dlopen(LIBRARY_PATH, RTLD_LAZY);
-    if (!handle)
-    {
-        std::cerr << "Ошибка загрузки библиотеки: " << dlerror() << std::endl;
-        return 1;
-    }
-
-    if (!lab2_open || !lab2_close || !lab2_read || !lab2_lseek)
-    {
-        std::cerr << "Ошибка загрузки функций из библиотеки: " << dlerror() << std::endl;
-        dlclose(handle);
-        return 1;
-    }
-
     for (int i = 0; i < repeat; ++i)
     {
-        find_file(filename, search_path, lab2_open, lab2_close, lab2_read, lab2_lseek);
+        find_file(filename, search_path);
     }
 
-    dlclose(handle);
     return 0;
 }

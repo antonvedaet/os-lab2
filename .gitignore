@@ -2,3 +2,7 @@ liblab2.so
 search
 searchMRU
 sh
+cache_bench
+bench
+.vscode
+benchCache
