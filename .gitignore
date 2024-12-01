@@ -6,3 +6,4 @@ cache_bench
 bench
 .vscode
 benchCache
+results.logs
