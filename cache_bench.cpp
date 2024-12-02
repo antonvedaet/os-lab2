@@ -3,8 +3,11 @@
 #include <chrono>
 #include "lab2_cache.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #define FILE_PATH "benchmark_file_cache.txt"
-#define FILE_SIZE (1024 * 1024 * 100) // 10 MB
+#define FILE_SIZE (1024 * 1024 * 100) // 100 MB
 #define BLOCK_SIZE 4096
 
 void generate_file(const char *path, size_t size)
@@ -23,7 +26,7 @@ int main()
 
     generate_file(FILE_PATH, FILE_SIZE);
 
-    int fd = lab2_open(FILE_PATH, 5);
+    int fd = lab2_open(FILE_PATH, 64);
     if (fd < 0)
     {
         std::cerr << "Failed to open file" << std::endl;
@@ -36,7 +39,7 @@ int main()
     for (size_t i = 0; i < FILE_SIZE / BLOCK_SIZE; ++i)
     {
         lab2_read(fd, buffer, BLOCK_SIZE);
-        lab2_write(fd, buffer, BLOCK_SIZE);
+        // lab2_write(fd, buffer, BLOCK_SIZE);
     }
 
     auto end = std::chrono::high_resolution_clock::now();

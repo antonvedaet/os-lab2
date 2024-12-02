@@ -15,7 +15,7 @@ void find_file(const std::string &filename, const fs::path &search_path)
     {
         if (entry.is_regular_file() && entry.path().filename() == filename)
         {
-            int fd = lab2_open(entry.path().c_str(), 4);
+            int fd = lab2_open(entry.path().c_str(), 4096);
             if (fd < 0)
             {
                 std::cerr << "Ошибка открытия файла: " << entry.path() << std::endl;

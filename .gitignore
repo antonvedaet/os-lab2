@@ -7,3 +7,4 @@ bench
 .vscode
 benchCache
 results.logs
+searchCache
