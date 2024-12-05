@@ -37,8 +37,8 @@ int main()
     for (size_t i = 0; i < FILE_SIZE / BLOCK_SIZE; ++i)
     {
         read(fd, buffer, BLOCK_SIZE);
-        // lseek(fd, -BLOCK_SIZE, SEEK_CUR);
-        // write(fd, buffer, BLOCK_SIZE);
+        lseek(fd, -BLOCK_SIZE, SEEK_CUR);
+        write(fd, buffer, BLOCK_SIZE);
     }
 
     auto end = std::chrono::high_resolution_clock::now();

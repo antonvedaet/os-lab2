@@ -26,11 +26,13 @@ struct CachedFile
     std::deque<off_t> cache_queue;
     size_t max_cache_size;
     off_t current_offset;
+    size_t cache_hits;
+    size_t cache_misses;
 };
 
 std::map<int, CachedFile> open_files;
 
-const size_t PAGE_SIZE = 4096 * 4;
+const size_t PAGE_SIZE = 4096 * 2;
 
 inline off_t page_offset(off_t offset)
 {
@@ -39,42 +41,33 @@ inline off_t page_offset(off_t offset)
 
 void evict_page(CachedFile &file)
 {
-    while (!file.cache_queue.empty())
+    if (!file.cache_queue.empty())
     {
         off_t offset = file.cache_queue.front();
         file.cache_queue.pop_front();
 
         CachePage &page = file.cache[offset];
-        if (page.used)
+        if (page.dirty)
         {
-            page.used = false;
-            file.cache_queue.push_front(offset);
+            std::cout << "Evicting dirty page at offset: " << offset << std::endl;
+
+            size_t actual_size_to_write = 0;
+            for (size_t i = 0; i < PAGE_SIZE; ++i)
+            {
+                if (page.data[i] != 0)
+                {
+                    actual_size_to_write = i + 1;
+                }
+            }
+
+            lseek(file.fd, offset, SEEK_SET);
+            write(file.fd, page.data.data(), actual_size_to_write);
         }
         else
         {
-            if (page.dirty)
-            {
-                std::cout << "Evicting dirty page at offset: " << offset << std::endl;
-
-                size_t actual_size_to_write = 0;
-                for (size_t i = 0; i < PAGE_SIZE; ++i)
-                {
-                    if (page.data[i] != 0)
-                    {
-                        actual_size_to_write = i + 1;
-                    }
-                }
-
-                lseek(file.fd, offset, SEEK_SET);
-                write(file.fd, page.data.data(), actual_size_to_write);
-            }
-            else
-            {
-                std::cout << "Evicting clean page at offset: " << offset << std::endl;
-            }
-            file.cache.erase(offset);
-            return;
+            std::cout << "Evicting clean page at offset: " << offset << std::endl;
         }
+        file.cache.erase(offset);
     }
 }
 
@@ -84,7 +77,7 @@ int lab2_open(const char *path, size_t max_cache_size = 4)
     if (fd == -1)
         return -1;
 
-    CachedFile cachedFile = {fd, {}, {}, max_cache_size, 0};
+    CachedFile cachedFile = {fd, {}, {}, max_cache_size, 0, 0, 0};
     open_files[fd] = cachedFile;
     return fd;
 }
@@ -125,6 +118,7 @@ ssize_t lab2_read(int fd, void *buf, size_t count)
 
         if (file.cache.find(page_offset) == file.cache.end())
         {
+            file.cache_misses++;
             if (file.cache.size() >= file.max_cache_size)
                 evict_page(file);
 
@@ -147,6 +141,7 @@ ssize_t lab2_read(int fd, void *buf, size_t count)
         }
         else
         {
+            file.cache_hits++;
             file.cache_queue.erase(std::find(file.cache_queue.begin(), file.cache_queue.end(), page_offset));
             file.cache_queue.push_front(page_offset);
         }
@@ -180,6 +175,7 @@ ssize_t lab2_write(int fd, const void *buf, size_t count)
 
         if (file.cache.find(page_offset) == file.cache.end())
         {
+            file.cache_misses++;
             if (file.cache.size() >= file.max_cache_size)
                 evict_page(file);
 
@@ -194,6 +190,7 @@ ssize_t lab2_write(int fd, const void *buf, size_t count)
         }
         else
         {
+            file.cache_hits++;
             file.cache_queue.erase(std::find(file.cache_queue.begin(), file.cache_queue.end(), page_offset));
             file.cache_queue.push_front(page_offset);
         }
@@ -267,4 +264,30 @@ int lab2_fsync(int fd)
     }
 
     return fsync(fd);
+}
+
+void output_cache_stats(int fd)
+{
+    auto it = open_files.find(fd);
+    if (it == open_files.end())
+    {
+        std::cerr << "File descriptor not found." << std::endl;
+        return;
+    }
+
+    CachedFile &file = it->second;
+    size_t total_accesses = file.cache_hits + file.cache_misses;
+    if (total_accesses == 0)
+    {
+        std::cout << "No cache accesses recorded." << std::endl;
+        return;
+    }
+
+    double hit_percentage = (static_cast<double>(file.cache_hits) / total_accesses) * 100;
+    double miss_percentage = (static_cast<double>(file.cache_misses) / total_accesses) * 100;
+
+    std::cout << "Cache hits: " << file.cache_hits << std::endl;
+    std::cout << "Cache misses: " << file.cache_misses << std::endl;
+    std::cout << "Hit percentage: " << hit_percentage << "%" << std::endl;
+    std::cout << "Miss percentage: " << miss_percentage << "%" << std::endl;
 }

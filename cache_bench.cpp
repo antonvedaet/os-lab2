@@ -39,12 +39,12 @@ int main()
     for (size_t i = 0; i < FILE_SIZE / BLOCK_SIZE; ++i)
     {
         lab2_read(fd, buffer, BLOCK_SIZE);
-        // lab2_write(fd, buffer, BLOCK_SIZE);
+        lab2_write(fd, buffer, BLOCK_SIZE);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
-
+    output_cache_stats(fd);
     lab2_close(fd);
 
     std::cout << "Time taken with cache: " << duration.count() << " seconds" << std::endl;
