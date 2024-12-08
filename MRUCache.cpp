@@ -32,7 +32,7 @@ struct CachedFile
 
 std::map<int, CachedFile> open_files;
 
-const size_t PAGE_SIZE = 4096 * 2;
+const size_t PAGE_SIZE = 4096 * 8;
 
 inline off_t page_offset(off_t offset)
 {
