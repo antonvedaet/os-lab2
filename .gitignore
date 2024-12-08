@@ -8,3 +8,5 @@ bench
 benchCache
 results.logs
 searchCache
+benchread
+benchwrite
